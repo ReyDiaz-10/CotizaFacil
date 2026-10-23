@@ -1,0 +1,121 @@
+COTIZAFACIL — GUIA RAPIDA PARA CMD
+
+1. Permisos de Git en Windows
+-----------------------------
+Abre CMD con tu usuario normal (no como administrador) y entra a la carpeta
+que contiene el repositorio. No ejecutes safe.directory de forma global.
+
+Si Git muestra “detected dubious ownership”, agrega solo esta carpeta:
+  git config --global --add safe.directory "C:/Users/neilm/Documents/Codex/2026-10-21/referenced-chatgpt-conversation-this-is-an"
+
+Si Git muestra “Permission denied” en .git/index.lock:
+- Cierra VS Code, GitHub Desktop u otros procesos Git abiertos para ese repositorio.
+- Verifica que no haya un index.lock activo. Si existe y no hay ningún Git trabajando,
+  bórralo desde el Explorador de archivos.
+- Asegúrate de que tu usuario de Windows tenga permiso Modificar sobre la carpeta
+  del repositorio y su subcarpeta .git (Propiedades > Seguridad).
+No cambies permisos de toda la unidad ni ejecutes comandos de borrado recursivo.
+
+2. Commit y push
+----------------
+En CMD, ve a la carpeta real del repositorio:
+  cd /d "C:\Users\neilm\Documents\Codex\2026-10-21\referenced-chatgpt-conversation-this-is-an"
+Revisa primero:
+  git status --short
+  git remote -v
+  git branch --show-current
+El remoto esperado es https://github.com/ReyDiaz-10/CotizaFacil.git y la rama main.
+
+Asegúrate de que .env, backend/.env, backend/data, backend/.venv y cualquier
+clave estén ignorados. Nunca uses git add -f para estos archivos.
+Ejecuta de a una línea y espera el resultado de cada comando:
+  git add .
+  git diff --cached --check
+  git diff --cached --stat
+  git commit -m "feat: mejora CotizaFacil y prepara Supabase"
+  git push -u origin main
+
+Si el push es rechazado porque GitHub tiene cambios nuevos, no uses force push.
+Primero ejecuta:
+  git pull --rebase origin main
+Resuelve conflictos si aparecen, luego repite commit si hace falta y push.
+
+3. Verificación local
+---------------------
+Ejecuta verify-local.cmd desde el Explorador o CMD. Este valida sintaxis Python,
+importa FastAPI y consulta /api/health. Si falta el entorno virtual, crea uno e
+instala dependencias así:
+  cd /d "C:\Users\neilm\Documents\Codex\2026-10-21\referenced-chatgpt-conversation-this-is-an\backend"
+  py -m venv .venv
+  .venv\Scripts\activate
+  python -m pip install -r requirements.txt
+Luego vuelve a ejecutar verify-local.cmd.
+
+Prueba manualmente en http://127.0.0.1:8000:
+- Inicia sesión como admin con los valores de backend/.env.
+- Revisa panel, métricas, notificaciones, ajustes de pago y contacto.
+- Inicia sesión con el perfil técnico y crea, edita, comparte y exporta una cotización.
+- Comprueba que el plan gratuito bloquee la tercera cotización.
+- Prueba Gemini desde la app solo después de configurar la clave en el panel.
+- No hagas pagos reales durante la prueba.
+
+4. Supabase y publicación
+-------------------------
+Supabase aún requiere crear tu proyecto y ejecutar backend/supabase/schema.sql.
+Añade SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en backend/.env, nunca en app.js.
+Detén el servidor y ejecuta primero la vista previa:
+  cd /d "C:\Users\neilm\Documents\Codex\2026-10-21\referenced-chatgpt-conversation-this-is-an\backend"
+  .venv\Scripts\activate
+  python scripts/migrate_json_to_supabase.py
+Solo si los conteos son correctos y conservas una copia de backend/data, ejecuta:
+  python scripts/migrate_json_to_supabase.py --apply
+Configura las mismas variables privadas en Render antes de publicar. La migración
+no mueve la clave Gemini; vuelve a guardarla desde el panel tras el despliegue.
+No se ha conectado ni probado Supabase todavía. El dominio personalizado requiere
+registrarlo y configurar DNS en Render; el servicio gratis puede dormir.
+
+Si vas a ejecutar desde otro directorio o checkout, actualiza la ruta en esta guía.
+
+5. Instalar y probar Ollama en Windows (solo para uso local)
+------------------------------------------------------------
+Ollama funciona con CotizaFácil cuando FastAPI corre en este mismo computador.
+Si publicas el backend en Render, localhost allí no es tu PC y Ollama local no
+será accesible desde Render. Para la web publicada usa Gemini/API alojada o un
+servidor Ollama propio con acceso seguro; no expongas el puerto 11434 a internet.
+
+Descarga e instalación oficial desde CMD (Windows 10 o posterior):
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://ollama.com/install.ps1 | iex"
+Cierra y vuelve a abrir CMD después de instalar. Comprueba la instalación:
+  ollama --version
+Descarga el modelo sugerido (aprox. 2.5 GB; espacio y velocidad dependen del PC):
+  ollama pull qwen3:4b
+Prueba el modelo en la consola:
+  ollama run qwen3:4b
+Escribe una pregunta sencilla y luego escribe /bye para salir.
+
+Con Ollama iniciado en este PC, verifica su API local:
+  curl http://localhost:11434/api/tags
+La respuesta debe listar qwen3:4b. Si curl no conecta, abre Ollama desde Inicio
+(Menu Inicio > Ollama) y vuelve a probar. El servicio local suele escuchar en
+http://localhost:11434. No necesita API key.
+
+En CotizaFácil, inicia el backend local y entra como admin:
+Panel de administración > Configurar proveedor de IA
+- Tipo: Ollama local
+- Dirección: http://localhost:11434
+- Modelo: qwen3:4b
+- Clave API: dejar vacía
+Pulsa primero “Probar conexión”. Si responde correctamente, pulsa “Guardar
+configuración”. Después entra como técnico y genera una cotización de prueba.
+Ollama debe seguir ejecutándose en el mismo PC mientras se usa CotizaFácil.
+El modelo qwen3:4b ocupa alrededor de 2.5 GB descargados; la velocidad depende
+de memoria, procesador y GPU. Si el equipo se queda corto, prueba qwen3:1.7b:
+  ollama pull qwen3:1.7b
+Luego cambia el modelo en el panel a qwen3:1.7b.
+
+Comandos útiles:
+  ollama list
+  ollama ps
+  ollama stop qwen3:4b
+Para volver a Gemini en el panel, selecciona Google Gemini, pega la clave API
+privada y usa la URL y modelo que muestra el propio panel.
